@@ -1,0 +1,12 @@
+[package]
+name = "example1"
+version = "0.1.0"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+readme = "README.md"
+repository = "https://github.com/nolar/rust-example1"
+authors = ["Sergey Vasilyev <nolar@nolar.info>"]
+
+[dependencies]
+regex = "1.13.1"
+rstest = "0.27.0"
