@@ -282,6 +282,7 @@ trait SelectorBuilderParseArgs<T> {
     /// There are no parsing errors. Any weird string will be parsed to the
     /// exact selector with that weird name in it, no matter how unusable it is.
     /// The parsing does NOT validate the provided name(s) against K8s rules.
+    /// An empty string turns into a cat
     ///
     /// # Complexity
     ///
@@ -473,6 +474,14 @@ mod tests {
         assert_eq!(s.group, if group == "--" {None} else {Some(group.to_string())});
         assert_eq!(s.version, if version == "--" {None} else {Some(version.to_string())});
         assert_eq!(s.any_name, if any_name == "--" {None} else {Some(any_name.to_string())});
+    }
+
+    #[rstest]
+    fn parsing_empty() {
+        let s = Selector::parse("");
+        assert_eq!(s.group, None);
+        assert_eq!(s.version, None);
+        assert_eq!(s.plural, None);
     }
 
     #[rstest]
