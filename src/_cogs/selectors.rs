@@ -279,6 +279,10 @@ trait SelectorBuilderParseArgs<T> {
     /// - v123beta456
     /// But not other v-starting words, such as "vvv" or "v1gamma1".
     ///
+    /// There are no parsing errors. Any weird string will be parsed to the
+    /// exact selector with that weird name in it, no matter how unusable it is.
+    /// The parsing does NOT validate the provided name(s) against K8s rules.
+    ///
     /// # Complexity
     ///
     /// It performs at most 2 split-once calls on a string, and 1 regex check.
@@ -287,7 +291,7 @@ trait SelectorBuilderParseArgs<T> {
     ///
     /// ```
     /// use example1::{Resource, Selector};
-    /// let s = Selector::parse("kopfexamples.kopf.dev");
+    /// let s: Selector = "kopfexamples.kopf.dev".into();
     /// let r = Resource::builder().group("kopf.dev").version("v1").plural("kopfexamples").build()
     /// assert_eq!(s.matches(r), true)
     /// ```
@@ -390,6 +394,20 @@ impl SelectorParseArgs<(&str, &str, &str)> for Selector {
     }
 }
 
+// E.g.: let s: Selector = "kopfexamples.kopf.dev".into();
+impl From<&str> for Selector {
+    fn from(value: &str) -> Self {
+        Selector::parse(value)
+    }
+}
+
+// E.g.: let s: Selector = String::from("kopfexamples.kopf.dev").into();
+impl From<String> for Selector {
+    fn from(value: String) -> Self {
+        Selector::parse(value.as_ref())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -455,6 +473,22 @@ mod tests {
         assert_eq!(s.group, if group == "--" {None} else {Some(group.to_string())});
         assert_eq!(s.version, if version == "--" {None} else {Some(version.to_string())});
         assert_eq!(s.any_name, if any_name == "--" {None} else {Some(any_name.to_string())});
+    }
+
+    #[rstest]
+    fn parsing_from_str() {
+        let s: Selector = "kopfexamples.kopf.dev".into();
+        assert_eq!(s.group, Some("kopf.dev".to_string()));
+        assert_eq!(s.version, None);
+        assert_eq!(s.any_name, Some("kopfexamples".to_string()));
+    }
+
+    #[rstest]
+    fn parsing_from_string() {
+        let s: Selector = "kopfexamples.kopf.dev".to_string().into();
+        assert_eq!(s.group, Some("kopf.dev".to_string()));
+        assert_eq!(s.version, None);
+        assert_eq!(s.any_name, Some("kopfexamples".to_string()));
     }
 
     #[rstest]
