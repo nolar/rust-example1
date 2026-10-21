@@ -13,7 +13,8 @@ pub struct Selector {
     pub shortcut: Option<String>,
     pub category: Option<String>,
     pub any_name: Option<String>,
-    pub fn_: Option<Box<dyn Fn(&Resource) -> bool>>,
+    // todo: must not be public? Box is the impl detail.
+    pub predicate: Option<Box<dyn Fn(&Resource) -> bool>>,
 }
 
 // What we treat as an implied K8s resource version when parsing selectors.
@@ -170,8 +171,8 @@ impl Selector {
                 return false;
             };
         }
-        if let Some(fn_) = self.fn_.as_ref() {
-            if !fn_(resource) {
+        if let Some(predicate) = self.predicate.as_ref() {
+            if !predicate(resource) {
                 return false;
             };
         }
@@ -189,7 +190,7 @@ pub struct SelectorBuilder {
     pub shortcut: Option<String>,
     pub category: Option<String>,
     pub any_name: Option<String>,
-    pub fn_: Option<Box<dyn Fn(&Resource) -> bool>>,
+    pub predicate: Option<Box<dyn Fn(&Resource) -> bool>>,
 }
 
 impl SelectorBuilder {
@@ -203,7 +204,7 @@ impl SelectorBuilder {
             shortcut: self.shortcut,
             category: self.category,
             any_name: self.any_name,
-            fn_: self.fn_,
+            predicate: self.predicate,
         }
     }
 
@@ -247,8 +248,11 @@ impl SelectorBuilder {
         self
     }
 
-    pub fn fn_(mut self, value: Box<dyn Fn(&Resource) -> bool>) -> Self {
-        self.fn_ = Some(value);
+    pub fn predicate<F>(mut self, value: F) -> Self
+    where
+        F: Fn(&Resource) -> bool + Send + Sync + 'static,
+    {
+        self.predicate = Some(Box::new(value));
         self
     }
 }
@@ -567,6 +571,14 @@ mod tests {
     fn matching_by_category(resource: Resource, #[case] value: &str, #[case] expected: bool) {
         let s = Selector::builder().category(value).build();
         assert_eq!(s.matches(&resource), expected);
+    }
+
+    #[rstest]
+    fn matching_by_predicate(resource: Resource) {
+        let s1 = Selector::builder().predicate(|r| r.group == Some("kopf.dev".to_string())).build();
+        let s2 = Selector::builder().predicate(|r| r.group == Some("blah.dev".to_string())).build();
+        assert_eq!(s1.matches(&resource), true);
+        assert_eq!(s2.matches(&resource), false);
     }
 
     #[rstest]
