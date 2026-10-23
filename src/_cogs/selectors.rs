@@ -326,8 +326,7 @@ impl SelectorBuilderParseArgs<(&str,)> for SelectorBuilder {
 
 // Selector::builder()::parse(("kopf.dev/v1", "kopfexamples")).build()
 impl SelectorBuilderParseArgs<(&str, &str)> for SelectorBuilder {
-    fn parse(self, args: (&str, &str)) -> Self {
-        let (group_version, any_name) = args;
+    fn parse(self, (group_version, any_name): (&str, &str)) -> Self {
         // todo: parse kopf.dev/v1 with slashes, if any (and different order)
 
         // Either v1, or v1.kopf.dev, but we need the 1st item only.
@@ -355,8 +354,7 @@ impl SelectorBuilderParseArgs<(&str, &str)> for SelectorBuilder {
 
 // Selector::builder()::parse(("kopf.dev", "v1", "kopfexamples")).build()
 impl SelectorBuilderParseArgs<(&str, &str, &str)> for SelectorBuilder {
-    fn parse(self, args: (&str, &str, &str)) -> Self {
-        let (group, version, any_name) = args;
+    fn parse(self, (group, version, any_name): (&str, &str, &str)) -> Self {
         self.group(group).version(version).any_name(any_name)
     }
 }
