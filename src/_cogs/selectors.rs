@@ -19,7 +19,7 @@ pub struct Selector {
 
 // What we treat as an implied K8s resource version when parsing selectors.
 // Matches: v1, v1alpha1, v1beta1; BUT NOT: velcro, v1alpha, v1gamma1.
-static K8S_VERSION_PATTERN: LazyLock<Regex> =
+pub(crate) static K8S_VERSION_PATTERN: LazyLock<Regex> =
     LazyLock::new(|| Regex::new("^v\\d+(?:(?:alpha|beta)\\d+)?$").unwrap());
 
 /// A selector is a combination of criteria to apply to specific resources.
