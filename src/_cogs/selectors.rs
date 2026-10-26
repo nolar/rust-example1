@@ -2,10 +2,12 @@ use crate::_cogs::resources::Resource;
 use regex::Regex;
 use std::borrow::Borrow;
 use std::fmt;
-use std::sync::LazyLock;
+use std::sync::{Arc, LazyLock};
 
 // Mainly to add the Debug trait to the whole Selector. Also for readability.
-pub struct Predicate(pub Box<dyn Fn(&Resource) -> bool>);
+// The exact ref structure is an internal implementation detail of this module.
+#[derive(Clone)]
+pub struct Predicate(pub Arc<dyn Fn(&Resource) -> bool + Send + Sync>);
 
 impl fmt::Debug for Predicate {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -13,7 +15,7 @@ impl fmt::Debug for Predicate {
     }
 }
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Clone)]
 pub struct Selector {
     pub group: Option<String>,
     pub version: Option<String>,
@@ -23,7 +25,7 @@ pub struct Selector {
     pub shortcut: Option<String>,
     pub category: Option<String>,
     pub any_name: Option<String>,
-    // todo: must not be public? Box is the impl detail.
+    // todo: must not be public? The container is an impl detail. It should never be exposed at all.
     pub predicate: Option<Predicate>,
 }
 
@@ -262,7 +264,7 @@ impl SelectorBuilder {
     where
         F: Fn(&Resource) -> bool + Send + Sync + 'static,
     {
-        self.predicate = Some(Predicate(Box::new(value)));
+        self.predicate = Some(Predicate(Arc::new(value)));
         self
     }
 }
@@ -607,5 +609,14 @@ mod tests {
         let results = s.select([&r1, &r2]);
         assert_eq!(results.len(), 1);
         assert_eq!(results[0], &r1);
+    }
+
+    fn assert_send<T: Send>() {}
+    fn assert_sync<T: Sync>() {}
+
+    #[rstest]
+    fn is_thread_safe() {
+        assert_send::<Selector>();
+        assert_sync::<Selector>();
     }
 }
