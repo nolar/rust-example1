@@ -1,9 +1,19 @@
 use crate::_cogs::resources::Resource;
 use regex::Regex;
 use std::borrow::Borrow;
+use std::fmt;
 use std::sync::LazyLock;
 
-#[derive(Default)]
+// Mainly to add the Debug trait to the whole Selector. Also for readability.
+pub struct Predicate(pub Box<dyn Fn(&Resource) -> bool>);
+
+impl fmt::Debug for Predicate {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("Predicate(<closure>)")
+    }
+}
+
+#[derive(Default, Debug)]
 pub struct Selector {
     pub group: Option<String>,
     pub version: Option<String>,
@@ -14,7 +24,7 @@ pub struct Selector {
     pub category: Option<String>,
     pub any_name: Option<String>,
     // todo: must not be public? Box is the impl detail.
-    pub predicate: Option<Box<dyn Fn(&Resource) -> bool>>,
+    pub predicate: Option<Predicate>,
 }
 
 // What we treat as an implied K8s resource version when parsing selectors.
@@ -171,7 +181,7 @@ impl Selector {
                 return false;
             };
         }
-        if let Some(predicate) = self.predicate.as_ref() {
+        if let Some(Predicate(predicate)) = self.predicate.as_ref() {
             if !predicate(resource) {
                 return false;
             };
@@ -190,7 +200,7 @@ pub struct SelectorBuilder {
     pub shortcut: Option<String>,
     pub category: Option<String>,
     pub any_name: Option<String>,
-    pub predicate: Option<Box<dyn Fn(&Resource) -> bool>>,
+    pub predicate: Option<Predicate>,
 }
 
 impl SelectorBuilder {
@@ -252,7 +262,7 @@ impl SelectorBuilder {
     where
         F: Fn(&Resource) -> bool + Send + Sync + 'static,
     {
-        self.predicate = Some(Box::new(value));
+        self.predicate = Some(Predicate(Box::new(value)));
         self
     }
 }
