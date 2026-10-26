@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 /// A specific resource as discovered from the K8s API. Usually, all fields
 /// are filled, except as in tests and docs, where the resource can be partial.
-#[derive(Debug)]
+#[derive(Debug, Default, Clone, Eq)]
 pub struct Resource {
     pub group: Option<String>,
     pub version: Option<String>,
